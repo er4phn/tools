@@ -2,6 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import sys
+from os.path import expanduser
 
 def get_html(url):
     return requests.get(url).content
@@ -36,7 +37,7 @@ class Problem:
         outputs = samples.select("div.output")
         for out in outputs:
             pre = out.find("pre")
-            self.outputs.append(pre.text)
+            self.outputs.append(pre.text.strip())
 
 class Contest:
 
@@ -64,12 +65,10 @@ class Contest:
             os.system("mkdir -p {}/{}".format(self.id, problem.name))
     
     def make_templates(self):
-        from os.path import expanduser
-        home = expanduser("~")
-        with open(home + "/contests/codes/main.cpp", "r") as tpl_file:
-            for problem in self.problems:
-                with open("{}/{}/{}.cpp".format(self.id, problem.name, problem.name), "w") as new_file:
-                    new_file.write(tpl_file.read())
+        tpl = open(expanduser("~") + "/contests/codes/main.cpp", "r").read()
+        for problem in self.problems:
+            with open("{}/{}/{}.cpp".format(self.id, problem.name, problem.name), "w") as new_file:
+                new_file.write(tpl)
 
     def make_inputs(self):
         for problem in self.problems:
@@ -91,6 +90,14 @@ class Contest:
                     new_out.write(out)
                 sample_id += 1
 
+    def make_testers(self):
+        tester = open(expanduser("~") + "/tools/cf/test.py", "r").read()
+        for problem in self.problems:
+            replaced_tester = tester.replace("EXECUTABLE", problem.name)
+            with open("{}/{}/test".format(self.id, problem.name), "w") as new_tester_file:
+                new_tester_file.write(replaced_tester)
+            os.system("chmod +x {}/{}/test".format(self.id, problem.name))
+
 def main():
     contest_id = sys.argv[1]
     con = Contest(contest_id)
@@ -99,6 +106,7 @@ def main():
     con.make_templates()
     con.make_inputs()
     con.make_outputs()
+    con.make_testers()
 
 if __name__ == '__main__':
     main()
